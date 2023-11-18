@@ -41,16 +41,6 @@ impl SolarPanel {
         }
     }
 }
-// Fonction pour calculer l'énergie totale du système basée sur la distance entre les points.
-fn calculate_energy(solar_panels: &[SolarPanel]) -> f64 {
-    let mut energy = 0.0;
-    for i in 0..solar_panels.len() {
-        for j in i + 1..solar_panels.len() {
-            energy += 1.0 / solar_panels[i].position.distance(&solar_panels[j].position);
-        }
-    }
-    energy
-}
 
 // Fonction pour réarranger les points en utilisant l'algorithme de recuit simulé.
 fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
