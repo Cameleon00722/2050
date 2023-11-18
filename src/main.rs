@@ -48,7 +48,9 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
     let mut rng = rand::thread_rng();
     let cloned_solar = solar_panels.clone();
 
+
     for panel in solar_panels{
+
 
         let mut current_energy = 0.0;
         for i in 0..cloned_solar.clone().len() {
@@ -57,15 +59,16 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
             }
         }
 
-
+        //impossible à trigger on a energie infinie avec l'étoile
         if panel.energy_level < 5.{
-            eprintln!("energy level too low")
+            println!("energy level too low")
         }
 
         for _ in 0..100 {
             let dx = rng.gen_range(-0.1..0.1);
             let dy = rng.gen_range(-0.1..0.1);
             let dz = rng.gen_range(-0.1..0.1);
+
 
 
             panel.position.x += dx;
@@ -86,6 +89,31 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
                 panel.position.y -= dy;
                 panel.position.z -= dz;
             }
+
+            if panel.temperature > 1500. {
+                println!("{:?}", panel);
+                println!("panel temperature too hight");
+                println!("begin automatique correction");
+
+                let ancient_coordinate = panel.clone();
+
+                while panel.temperature > 1000.{
+                    panel.position.x += 10.;
+                    panel.position.y += 10.;
+                    panel.position.z += 10.;
+
+                    //ajouter un timer ici
+                    //plus écoute de la sonde thermique
+
+                    panel.temperature -= 15.;
+                }
+
+                // rester plus loins que la position d'origine pour éviter une autre surchauffe
+                panel.position.x = ancient_coordinate.position.x - 5.;
+                panel.position.y = ancient_coordinate.position.y - 5.;
+                panel.position.z = ancient_coordinate.position.z - 5.;
+
+            }
         }
 }
 }
@@ -94,8 +122,8 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
 
 fn main() {
     const NUM_PANELS: usize = 10;
-    const INITIAL_TEMPERATURE: f64 = 100.0;
-    const FINAL_TEMPERATURE: f64 = 0.01;
+    const INITIAL_TEMPERATURE: f64 = -270.424;
+    const DANGER_TEMPERATURE: f64 = 1668.;
 
     let mut solar_panels = Vec::new();
     let mut rng = rand::thread_rng();
@@ -110,7 +138,7 @@ fn main() {
         let z = radius * theta.cos();
 
         let position = Point::new(x, y, z);
-        let temperature = rng.gen_range(20.0..30.0);
+        let temperature = rng.gen_range(1000.0..1700.0);
         let energy_level = rng.gen_range(70.0..100.0);
         let connectivity = rng.gen_range(80..100);
 
@@ -119,12 +147,13 @@ fn main() {
         solar_panels.push(solar_panel);
     }
 
-    let mut temperature = INITIAL_TEMPERATURE;
 
-    while temperature > FINAL_TEMPERATURE {
+    for _ in 0..100 {
         rearrange_panels_hyperion(&mut solar_panels);
-        temperature *= 0.99;
     }
 
-    println!("{:?}", solar_panels);
+    for panel in solar_panels{
+        println!("{:?}", panel);
+    }
+
 }
