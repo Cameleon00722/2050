@@ -123,7 +123,7 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
 fn main() {
     const NUM_PANELS: usize = 10;
     const INITIAL_TEMPERATURE: f64 = -270.424;
-    const DANGER_TEMPERATURE: f64 = 1668.;
+    const DANGER_TEMPERATURE: f64 = 1668.; // température de fusion du titane
 
     let mut solar_panels = Vec::new();
     let mut rng = rand::thread_rng();
