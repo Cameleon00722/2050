@@ -94,6 +94,19 @@ fn rearrange_panels_hyperion(solar_swarm: &mut SolarSwarm){
             panel.position.y += dy;
             panel.position.z += dz;
 
+            let new_distance_to_star = calculate_distance(&Point::new(0.0, 0.0, 0.0), &panel.position);
+
+            // Vérification de la distance de sécurité
+            if new_distance_to_star < 6. {
+                // Reculer le panneau solaire (ajuster selon votre logique)
+                panel.position.x += dx;
+                panel.position.y += dy;
+                panel.position.z += dz;
+
+                println!("collision star warning")
+            }
+
+
             let mut new_energy = 0.0;
             for i in 0..cloned_solar.clone().len() {
                 for j in i + 1..cloned_solar.len() {
@@ -101,7 +114,7 @@ fn rearrange_panels_hyperion(solar_swarm: &mut SolarSwarm){
                 }
             }
 
-            // Vérification de la distance entre les panneaux
+            // Vérification de la distance entre les panneaux ( à modifier pas optimal )
             let min_distance = 2.0;
             for other_panel in &cloned_solar{
                 while other_panel.position.distance(&panel.position) < min_distance {
@@ -154,24 +167,24 @@ fn rearrange_panels_hyperion(solar_swarm: &mut SolarSwarm){
 
 }
 
-
+fn calculate_distance(star_position: &Point, panel_position: &Point) -> f64 {
+    ((star_position.x - panel_position.x).powi(2) + (star_position.y - panel_position.y).powi(2) + (star_position.z - panel_position.z).powi(2)).sqrt()
+}
 
 fn main() {
-    const NUM_PANELS: usize = 10;
-    const INITIAL_TEMPERATURE: f64 = -270.424;
+    const NUM_PANELS: usize = 10; // nombre de panneau souhaité
+    const INITIAL_TEMPERATURE: f64 = -270.424; // température du vide spatial
     const DANGER_TEMPERATURE: f64 = 1668.; // température de fusion du titane
-
-    const STAR_DIAMETER: f64 = 4.;
+    const STAR_DIAMETER: f64 = 4.; // taille de l'étoile autours duquel on gravite
 
     let mut solar_panels = Vec::new();
     let mut rng = rand::thread_rng();
-    let star_radius = STAR_DIAMETER / 2.;
     let orbit_distance = 2.;
 
     for _ in 0..NUM_PANELS {
-        let theta = rng.gen_range(0.0..2.0 * PI);
-        let phi = rng.gen_range(0.0..PI);
-        let radius = orbit_distance + star_radius;  // Distance de l'étoile + rayon de l'étoile
+        let theta = rng.gen_range(0.0..2.0 * PI); //génère un nombre aléatoire dans la plage spécifiée, ici de 0 à 2π dans le plan xy
+        let phi = rng.gen_range(0.0..PI); //génère un nombre aléatoire dans la plage spécifiée, ici de 0 à π dans le plan ZX
+        let radius = orbit_distance + STAR_DIAMETER;  // Distance de d'implantation des satellites
 
         let x = radius * theta.sin() * phi.cos();
         let y = radius * theta.sin() * phi.sin();
@@ -187,18 +200,15 @@ fn main() {
         solar_panels.push(solar_panel);
     }
 
-    let mut solar_swarm = SolarSwarm::new("Swarm1", solar_panels);
+    let mut solar_swarm = SolarSwarm::new("Hyperion", solar_panels);
 
-    for _ in 0..1 {
+    // simulateur de déplacement aléatoire
+    for _ in 0..10 {
         rearrange_panels_hyperion(&mut solar_swarm);
     }
 
     for panel in solar_swarm.solar_panels{
         println!("{:?}", panel)
     }
-
-
-
-
 
 }
