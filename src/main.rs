@@ -71,6 +71,13 @@ fn rearrange_panels_hyperion(solar_swarm: &mut SolarSwarm){
 
     for panel in solar_swarm.solar_panels.iter_mut(){
 
+        let close_neighbors = cloned_solar.clone()
+            .iter()
+            .filter(|other_panel| calculate_distance(&panel.position, &other_panel.position) < 20.)
+            .count() as i32;
+
+        panel.connectivity = close_neighbors;
+
         let mut current_energy = 0.0;
         for i in 0..cloned_solar.clone().len() {
             for j in i + 1..cloned_solar.len() {
