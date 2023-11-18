@@ -5,6 +5,7 @@ use std::f64::consts::PI;
 
 // classe point
 #[derive(Debug)]
+#[derive(Clone)]
 struct Point {
     x: f64,
     y: f64,
@@ -21,6 +22,7 @@ impl Point {
     }
 }
 // classe panneau solaire
+#[derive(Clone)]
 #[derive(Debug)]
 struct SolarPanel {
     position: Point,
@@ -51,36 +53,54 @@ fn calculate_energy(solar_panels: &[SolarPanel]) -> f64 {
 }
 
 // Fonction pour réarranger les points en utilisant l'algorithme de recuit simulé.
-fn rearrange_panels(solar_panels: &mut Vec<SolarPanel>, temperature: f64) {
+fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
+
     let mut rng = rand::thread_rng();
-    let current_energy = calculate_energy(solar_panels);
+    let cloned_solar = solar_panels.clone();
 
-    for _ in 0..1000 {
-        let i = rng.gen_range(0..solar_panels.len());
-        let j = rng.gen_range(0..solar_panels.len());
-        if i != j {
+    for panel in solar_panels{
+
+        let mut current_energy = 0.0;
+        for i in 0..cloned_solar.clone().len() {
+            for j in i + 1..cloned_solar.len() {
+                current_energy += 1.0 / cloned_solar[i].position.distance(&cloned_solar[j].position);
+            }
+        }
 
 
+        if panel.energy_level < 5.{
+            eprintln!("energy level too low")
+        }
+
+        for _ in 0..100 {
             let dx = rng.gen_range(-0.1..0.1);
             let dy = rng.gen_range(-0.1..0.1);
             let dz = rng.gen_range(-0.1..0.1);
 
-            solar_panels[i].position.x += dx;
-            solar_panels[i].position.y += dy;
-            solar_panels[i].position.z += dz;
 
-            let new_energy = calculate_energy(solar_panels);
+            panel.position.x += dx;
+            panel.position.y += dy;
+            panel.position.z += dz;
+
+            let mut new_energy = 0.0;
+            for i in 0..cloned_solar.clone().len() {
+                for j in i + 1..cloned_solar.len() {
+                    new_energy += 1.0 / cloned_solar[i].position.distance(&cloned_solar[j].position);
+                }
+            }
 
             let delta_energy = new_energy - current_energy;
 
-            if delta_energy > 0.0 && rng.gen_range(0.0..1.0) > (-delta_energy / temperature).exp() {
-                solar_panels[i].position.x -= dx;
-                solar_panels[i].position.y -= dy;
-                solar_panels[i].position.z -= dz;
+            if delta_energy > 0.0 && rng.gen_range(0.0..1.0) > (-delta_energy / panel.temperature).exp() {
+                panel.position.x -= dx;
+                panel.position.y -= dy;
+                panel.position.z -= dz;
             }
         }
-    }
 }
+}
+
+
 
 fn main() {
     const NUM_PANELS: usize = 10;
@@ -112,7 +132,7 @@ fn main() {
     let mut temperature = INITIAL_TEMPERATURE;
 
     while temperature > FINAL_TEMPERATURE {
-        rearrange_panels(&mut solar_panels, temperature);
+        rearrange_panels_hyperion(&mut solar_panels);
         temperature *= 0.99;
     }
 
