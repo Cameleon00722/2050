@@ -29,15 +29,18 @@ struct SolarPanel {
     temperature: f64,
     energy_level: f64,
     connectivity: i32,
+    thruster: f64, // puissance de déplacement
 }
 
 impl SolarPanel {
-    fn new(position: Point, temperature: f64, energy_level: f64, connectivity: i32) -> SolarPanel {
+    fn new(position: Point, temperature: f64, energy_level: f64, connectivity: i32, thruster: f64) -> SolarPanel {
         SolarPanel {
             position,
             temperature,
             energy_level,
             connectivity,
+            thruster,
+
         }
     }
 }
@@ -60,13 +63,13 @@ impl SolarSwarm {
 
 
 // Fonction pour réarranger les points en utilisant l'algorithme de recuit simulé.
-fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
+fn rearrange_panels_hyperion(solar_swarm: &mut SolarSwarm){
 
     let mut rng = rand::thread_rng();
-    let cloned_solar = solar_panels.clone();
+    let cloned_solar = solar_swarm.solar_panels.clone();
 
 
-    for panel in solar_panels.iter_mut(){
+    for panel in solar_swarm.solar_panels.iter_mut(){
 
         let mut current_energy = 0.0;
         for i in 0..cloned_solar.clone().len() {
@@ -81,9 +84,9 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
         }
 
         for _ in 0..100 {
-            let dx = rng.gen_range(-0.1..0.1);
-            let dy = rng.gen_range(-0.1..0.1);
-            let dz = rng.gen_range(-0.1..0.1);
+            let dx = rng.gen_range(-panel.thruster..panel.thruster);
+            let dy = rng.gen_range(-panel.thruster..panel.thruster);
+            let dz = rng.gen_range(-panel.thruster..panel.thruster);
 
 
 
@@ -100,16 +103,13 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
 
             // Vérification de la distance entre les panneaux
             let min_distance = 2.0;
-            for other_panel in solar_panels.clone() {
-                if other_panel.position.distance(&panel.position) < min_distance {
-
+            for other_panel in &cloned_solar{
+                while other_panel.position.distance(&panel.position) < min_distance {
                     println!("collision risk DETECTED");
                     // Éloigner les panneaux si la distance est inférieure à 2
                     panel.position.x += dx * 2.0;
                     panel.position.y += dy * 2.0;
                     panel.position.z += dz * 2.0;
-
-
                 }
             }
 
@@ -128,7 +128,7 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
 
                 let ancient_coordinate = panel.clone();
 
-                while panel.temperature > 1000.{
+                while panel.temperature > 1000.{  // modifier pour prendre en compte la force des thrusters
                     panel.position.x += 10.;
                     panel.position.y += 10.;
                     panel.position.z += 10.;
@@ -161,13 +161,17 @@ fn main() {
     const INITIAL_TEMPERATURE: f64 = -270.424;
     const DANGER_TEMPERATURE: f64 = 1668.; // température de fusion du titane
 
+    const STAR_DIAMETER: f64 = 4.;
+
     let mut solar_panels = Vec::new();
     let mut rng = rand::thread_rng();
+    let star_radius = STAR_DIAMETER / 2.;
+    let orbit_distance = 2.;
 
     for _ in 0..NUM_PANELS {
         let theta = rng.gen_range(0.0..2.0 * PI);
         let phi = rng.gen_range(0.0..PI);
-        let radius = rng.gen_range(1.0..10.0);
+        let radius = orbit_distance + star_radius;  // Distance de l'étoile + rayon de l'étoile
 
         let x = radius * theta.sin() * phi.cos();
         let y = radius * theta.sin() * phi.sin();
@@ -178,22 +182,23 @@ fn main() {
         let energy_level = rng.gen_range(70.0..100.0);
         let connectivity = rng.gen_range(80..100);
 
-        let solar_panel = SolarPanel::new(position, temperature, energy_level, connectivity);
+        let solar_panel = SolarPanel::new(position, temperature, energy_level, connectivity, 1.);
 
         solar_panels.push(solar_panel);
     }
 
+    let mut solar_swarm = SolarSwarm::new("Swarm1", solar_panels);
 
     for _ in 0..1 {
-        rearrange_panels_hyperion(&mut solar_panels);
+        rearrange_panels_hyperion(&mut solar_swarm);
     }
 
-    for panel in solar_panels{
+    for panel in solar_swarm.solar_panels{
         println!("{:?}", panel)
     }
 
-    //let mut solar_swarm = SolarSwarm::new("Swarm1", solar_panels);
 
-    //println!("{:?}", solar_swarm);
+
+
 
 }
