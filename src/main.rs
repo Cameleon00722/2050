@@ -42,7 +42,7 @@ impl SolarPanel {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct SolarSwarm {
     name: String,
     solar_panels: Vec<SolarPanel>,
@@ -119,7 +119,6 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
             }
 
             if panel.temperature > 1500. {
-                println!("{:?}", panel);
                 println!("panel temperature too hight");
                 println!("begin automatique correction");
 
@@ -132,8 +131,8 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
 
                     //ajouter un timer ici
                     //plus écoute de la sonde thermique
-
                     panel.temperature -= 15.;
+
                 }
 
                 // rester plus loins que la position d'origine pour éviter une autre surchauffe
@@ -141,7 +140,10 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
                 panel.position.y = ancient_coordinate.position.y - 5.;
                 panel.position.z = ancient_coordinate.position.z - 5.;
 
+                println!("alerte end");
+
             }
+
         }
     }
 
@@ -168,7 +170,7 @@ fn main() {
         let z = radius * theta.cos();
 
         let position = Point::new(x, y, z);
-        let temperature = rng.gen_range(1000.0..1700.0);
+        let temperature = rng.gen_range(1300.0..1700.0);
         let energy_level = rng.gen_range(70.0..100.0);
         let connectivity = rng.gen_range(80..100);
 
@@ -178,13 +180,16 @@ fn main() {
     }
 
 
-    for _ in 0..100 {
+    for _ in 0..1 {
         rearrange_panels_hyperion(&mut solar_panels);
     }
 
-
     for panel in solar_panels{
-        println!("{:?}", panel);
+        println!("{:?}", panel)
     }
+
+    //let mut solar_swarm = SolarSwarm::new("Swarm1", solar_panels);
+
+    //println!("{:?}", solar_swarm);
 
 }
