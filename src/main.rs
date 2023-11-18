@@ -66,7 +66,7 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
     let cloned_solar = solar_panels.clone();
 
 
-    for panel in solar_panels{
+    for panel in solar_panels.iter_mut(){
 
         let mut current_energy = 0.0;
         for i in 0..cloned_solar.clone().len() {
@@ -99,15 +99,19 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
             }
 
             // Vérification de la distance entre les panneaux
-            //let min_distance = 2.0;
-            //for other_panel in local_solar_panels.iter() {
-            //    if other_panel.position.distance(&new_panel.position) < min_distance {
-            //        // Éloigner les panneaux si la distance est inférieure à 2
-            //        new_panel.position.x += dx * 2.0;
-            //        new_panel.position.y += dy * 2.0;
-            //        new_panel.position.z += dz * 2.0;
-            //    }
-            //}
+            let min_distance = 2.0;
+            for other_panel in solar_panels.clone() {
+                if other_panel.position.distance(&panel.position) < min_distance {
+
+                    println!("collision risk DETECTED");
+                    // Éloigner les panneaux si la distance est inférieure à 2
+                    panel.position.x += dx * 2.0;
+                    panel.position.y += dy * 2.0;
+                    panel.position.z += dz * 2.0;
+
+
+                }
+            }
 
 
             let delta_energy = new_energy - current_energy;
