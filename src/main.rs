@@ -1,11 +1,12 @@
+
+
 extern crate rand;
 
 use rand::Rng;
 use std::f64::consts::PI;
 
 // classe point
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Copy, Clone)]
 struct Point {
     x: f64,
     y: f64,
@@ -22,8 +23,7 @@ impl Point {
     }
 }
 // classe panneau solaire
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct SolarPanel {
     position: Point,
     temperature: f64,
@@ -42,6 +42,23 @@ impl SolarPanel {
     }
 }
 
+#[derive(Debug)]
+struct SolarSwarm {
+    name: String,
+    solar_panels: Vec<SolarPanel>,
+}
+
+impl SolarSwarm {
+    fn new(name: &str, solar_panels: Vec<SolarPanel>) -> SolarSwarm {
+        SolarSwarm {
+            name: name.to_string(),
+            solar_panels,
+        }
+    }
+}
+
+
+
 // Fonction pour réarranger les points en utilisant l'algorithme de recuit simulé.
 fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
 
@@ -50,7 +67,6 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
 
 
     for panel in solar_panels{
-
 
         let mut current_energy = 0.0;
         for i in 0..cloned_solar.clone().len() {
@@ -81,6 +97,18 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
                     new_energy += 1.0 / cloned_solar[i].position.distance(&cloned_solar[j].position);
                 }
             }
+
+            // Vérification de la distance entre les panneaux
+            //let min_distance = 2.0;
+            //for other_panel in local_solar_panels.iter() {
+            //    if other_panel.position.distance(&new_panel.position) < min_distance {
+            //        // Éloigner les panneaux si la distance est inférieure à 2
+            //        new_panel.position.x += dx * 2.0;
+            //        new_panel.position.y += dy * 2.0;
+            //        new_panel.position.z += dz * 2.0;
+            //    }
+            //}
+
 
             let delta_energy = new_energy - current_energy;
 
@@ -115,7 +143,9 @@ fn rearrange_panels_hyperion(solar_panels: &mut Vec<SolarPanel>){
 
             }
         }
-}
+    }
+
+
 }
 
 
@@ -151,6 +181,7 @@ fn main() {
     for _ in 0..100 {
         rearrange_panels_hyperion(&mut solar_panels);
     }
+
 
     for panel in solar_panels{
         println!("{:?}", panel);
