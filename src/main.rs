@@ -178,6 +178,25 @@ fn calculate_distance(star_position: &Point, panel_position: &Point) -> f64 {
     ((star_position.x - panel_position.x).powi(2) + (star_position.y - panel_position.y).powi(2) + (star_position.z - panel_position.z).powi(2)).sqrt()
 }
 
+fn calculate_solar_energy(reference_intensity: f64, reference_distance: f64, target_distance: f64, surface_area: f64) -> f64 {
+    // Calculer l'intensité à la nouvelle distance
+    let target_intensity = reference_intensity / (target_distance.powf(2.0) / reference_distance.powf(2.0));
+
+    // Calculer l'énergie solaire reçue à la nouvelle distance
+    let solar_energy = target_intensity * surface_area;
+
+    solar_energy
+}
+
+const G: f64 = 6.674e-11;  // Constante gravitationnelle en m^3 kg^-1 s^-2
+const MERCURY_MASS: f64 = 3.3011e23;  // Masse de Mercure en kg
+fn calculate_geostationary_orbit_parameters(orbital_period: f64) -> (f64, f64) {
+    let radius = ((G * MERCURY_MASS * orbital_period.powi(2)) / (4.0 * std::f64::consts::PI.powi(2))).powf(1.0 / 3.0);
+    let inclination = 0.0;  // Inclinaison proche de zéro pour une orbite géostationnaire
+
+    (radius, inclination)
+}
+
 fn main() {
     const NUM_PANELS: usize = 10; // nombre de panneau souhaité
     const INITIAL_TEMPERATURE: f64 = -270.424; // température du vide spatial
@@ -217,5 +236,26 @@ fn main() {
     for panel in solar_swarm.solar_panels{
         println!("{:?}", panel)
     }
+
+
+    /////////calcul tier
+
+    const REFERENCE_INTENSITY: f64 = 1361.0;  // Intensité solaire moyenne à la distance de référence en W/m^2 (exemple)
+    const REFERENCE_DISTANCE: f64 = 5.0e10;   // Distance de référence en mètres (exemple)
+    const TARGET_DISTANCE: f64 = 5.0e10;      // Nouvelle distance (distance orbitale du satellite géostationnaire) en mètres (exemple)
+    const SURFACE_AREA: f64 = 10.0;           // Surface du panneau solaire en m^2 (exemple)
+
+    let energy_received = calculate_solar_energy(REFERENCE_INTENSITY, REFERENCE_DISTANCE, TARGET_DISTANCE, SURFACE_AREA);
+
+    println!("Énergie solaire reçue à {} unités de distance : {}", TARGET_DISTANCE, energy_received);
+
+
+
+    const ORBITAL_PERIOD: f64 = 58.6 * 24.0 * 3600.0;  // Période orbitale en secondes (58.6 jours terrestres convertis)
+
+    let (radius, inclination) = calculate_geostationary_orbit_parameters(ORBITAL_PERIOD);
+
+    println!("Rayon Orbital : {} m", radius);
+    println!("Inclinaison Orbitale : {} degrés", inclination);
 
 }
