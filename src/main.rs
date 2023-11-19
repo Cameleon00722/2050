@@ -1,9 +1,8 @@
-
-
 extern crate rand;
 
 use rand::Rng;
 use std::f64::consts::PI;
+
 
 // classe point
 #[derive(Debug, Copy, Clone)]
@@ -60,6 +59,33 @@ impl SolarSwarm {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+struct Planete {
+    position: Point,
+    G_force: f64,
+    Mass: f64,
+    Orbital_period: f64,
+}
+
+impl Planete {
+    fn new(position: Point, G_force: f64, Mass: f64, Orbital_period: f64) -> Planete {
+        Planete {
+            position,
+            G_force,
+            Mass,
+            Orbital_period,
+
+        }
+    }
+
+    fn calculate_geostationary_orbit_parameters(orbital_period: f64, G: f64, MERCURY_MASS: f64) -> (f64, f64) {
+        let radius = ((G * MERCURY_MASS * orbital_period.powi(2)) / (4.0 * PI.powi(2))).powf(1.0 / 3.0);
+        let inclination = 0.0;  // Inclinaison proche de zéro pour une orbite géostationnaire
+
+        (radius, inclination)
+    }
+
+}
 
 
 // Fonction pour réarranger les points en utilisant l'algorithme de recuit simulé.
@@ -188,14 +214,8 @@ fn calculate_solar_energy(reference_intensity: f64, reference_distance: f64, tar
     solar_energy
 }
 
-const G: f64 = 6.674e-11;  // Constante gravitationnelle en m^3 kg^-1 s^-2
-const MERCURY_MASS: f64 = 3.3011e23;  // Masse de Mercure en kg
-fn calculate_geostationary_orbit_parameters(orbital_period: f64) -> (f64, f64) {
-    let radius = ((G * MERCURY_MASS * orbital_period.powi(2)) / (4.0 * std::f64::consts::PI.powi(2))).powf(1.0 / 3.0);
-    let inclination = 0.0;  // Inclinaison proche de zéro pour une orbite géostationnaire
 
-    (radius, inclination)
-}
+
 
 fn main() {
     const NUM_PANELS: usize = 10; // nombre de panneau souhaité
@@ -238,7 +258,7 @@ fn main() {
     }
 
 
-    /////////calcul tier
+    /////////calcul tier pour un positionnement supposé en orbite de mercure
 
     const REFERENCE_INTENSITY: f64 = 1361.0;  // Intensité solaire moyenne à la distance de référence en W/m^2 (exemple)
     const REFERENCE_DISTANCE: f64 = 5.0e10;   // Distance de référence en mètres (exemple)
@@ -250,10 +270,12 @@ fn main() {
     println!("Énergie solaire reçue à {} unités de distance : {}", TARGET_DISTANCE, energy_received);
 
 
+    let mercury = Planete::new(Point::new(10., 10., 10.), 6.674e-11, 3011e23, 58.6 * 24.0 * 3600.0);
 
-    const ORBITAL_PERIOD: f64 = 58.6 * 24.0 * 3600.0;  // Période orbitale en secondes (58.6 jours terrestres convertis)
+    //  ORBITAL_PERIOD: f64 = 58.6 * 24.0 * 3600.0;
+    // Période orbitale en secondes (58.6 jours terrestres convertis)
 
-    let (radius, inclination) = calculate_geostationary_orbit_parameters(ORBITAL_PERIOD);
+    let (radius, inclination) = Planete::calculate_geostationary_orbit_parameters(mercury.Orbital_period, mercury.G_force, mercury.Mass);
 
     println!("Rayon Orbital : {} m", radius);
     println!("Inclinaison Orbitale : {} degrés", inclination);
