@@ -1,3 +1,5 @@
+mod positionnement;
+
 extern crate rand;
 
 use rand::Rng;
@@ -23,7 +25,7 @@ impl Point {
 }
 // classe panneau solaire
 #[derive(Debug, Copy, Clone)]
-struct SolarPanel {
+pub struct SolarPanel {
     position: Point,
     temperature: f64,
     energy_level: f64,
@@ -62,24 +64,24 @@ impl SolarSwarm {
 #[derive(Debug, Copy, Clone)]
 struct Planete {
     position: Point,
-    G_force: f64,
-    Mass: f64,
-    Orbital_period: f64,
+    g_force: f64,
+    mass: f64,
+    orbital_period: f64,
 }
 
 impl Planete {
-    fn new(position: Point, G_force: f64, Mass: f64, Orbital_period: f64) -> Planete {
+    fn new(position: Point, g_force: f64, mass: f64, orbital_period: f64) -> Planete {
         Planete {
             position,
-            G_force,
-            Mass,
-            Orbital_period,
+            g_force,
+            mass,
+            orbital_period,
 
         }
     }
 
-    fn calculate_geostationary_orbit_parameters(orbital_period: f64, G: f64, MERCURY_MASS: f64) -> (f64, f64) {
-        let radius = ((G * MERCURY_MASS * orbital_period.powi(2)) / (4.0 * PI.powi(2))).powf(1.0 / 3.0);
+    fn calculate_geostationary_orbit_parameters(orbital_period: f64, g: f64, mercury_mass: f64) -> (f64, f64) {
+        let radius = ((g * mercury_mass * orbital_period.powi(2)) / (4.0 * PI.powi(2))).powf(1.0 / 3.0);
         let inclination = 0.0;  // Inclinaison proche de zéro pour une orbite géostationnaire
 
         (radius, inclination)
@@ -227,6 +229,7 @@ fn main() {
     let mut rng = rand::thread_rng();
     let orbit_distance = 2.;
 
+
     for _ in 0..NUM_PANELS {
         let theta = rng.gen_range(0.0..2.0 * PI); //génère un nombre aléatoire dans la plage spécifiée, ici de 0 à 2π dans le plan xy
         let phi = rng.gen_range(0.0..PI); //génère un nombre aléatoire dans la plage spécifiée, ici de 0 à π dans le plan ZX
@@ -275,9 +278,21 @@ fn main() {
     //  ORBITAL_PERIOD: f64 = 58.6 * 24.0 * 3600.0;
     // Période orbitale en secondes (58.6 jours terrestres convertis)
 
-    let (radius, inclination) = Planete::calculate_geostationary_orbit_parameters(mercury.Orbital_period, mercury.G_force, mercury.Mass);
+    let (radius, inclination) = Planete::calculate_geostationary_orbit_parameters(mercury.orbital_period, mercury.g_force, mercury.mass);
 
     println!("Rayon Orbital : {} m", radius);
     println!("Inclinaison Orbitale : {} degrés", inclination);
+
+
+    // calcul position hexagonal
+
+
+
+    let abeille = positionnement::create_hexagonal_pattern(NUM_PANELS);
+
+    for panel in abeille{
+        println!("{:?}", panel)
+    }
+
 
 }
