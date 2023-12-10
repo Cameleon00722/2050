@@ -1,49 +1,18 @@
 mod positionnement;
 
 extern crate rand;
+extern crate nalgebra as na;
 
 use rand::Rng;
 use std::f64::consts::PI;
+use na::{Point3, Vector3};
 
-
-// classe point
+// Structure pour représenter un point en trois dimensions
 #[derive(Debug, Copy, Clone)]
 struct Point {
     x: f64,
     y: f64,
     z: f64,
-}
-
-impl Point {
-    fn new(x: f64, y: f64, z: f64) -> Point {
-        Point { x, y, z }
-    }
-
-    fn distance(&self, other: &Point) -> f64 {
-        ((self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2)).sqrt()
-    }
-}
-// classe panneau solaire
-#[derive(Debug, Copy, Clone)]
-pub struct SolarPanel {
-    position: Point,
-    temperature: f64,
-    energy_level: f64,
-    connectivity: i32,
-    thruster: f64, // puissance de déplacement
-}
-
-impl SolarPanel {
-    fn new(position: Point, temperature: f64, energy_level: f64, connectivity: i32, thruster: f64) -> SolarPanel {
-        SolarPanel {
-            position,
-            temperature,
-            energy_level,
-            connectivity,
-            thruster,
-
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -61,99 +30,113 @@ impl SolarSwarm {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-struct Planete {
-    position: Point,
-    g_force: f64,
-    mass: f64,
-    orbital_period: f64,
+
+impl Point {
+    fn new(x: f64, y: f64, z: f64) -> Point {
+        Point { x, y, z }
+    }
+
+    fn distance(&self, other: &Point) -> f64 {
+        ((self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2)).sqrt()
+    }
 }
 
-impl Planete {
-    fn new(position: Point, g_force: f64, mass: f64, orbital_period: f64) -> Planete {
-        Planete {
-            position,
-            g_force,
-            mass,
-            orbital_period,
+// Structure pour représenter un panneau solaire
+#[derive(Debug, Copy, Clone)]
+pub struct SolarPanel {
+    position: Point,
+    temperature: f64,
+    energy_level: f64,
+    connectivity: i32,
+    thruster: f64,
+}
 
+impl SolarPanel {
+    fn new(position: Point, temperature: f64, energy_level: f64, connectivity: i32, thruster: f64) -> SolarPanel {
+        SolarPanel {
+            position,
+            temperature,
+            energy_level,
+            connectivity,
+            thruster,
+        }
+    }
+}
+
+// Structure pour représenter un corps céleste (planète)
+#[derive(Debug, Copy, Clone)]
+struct CelestialBody {
+    position: Point,
+    velocity: Vector3<f64>,
+}
+
+impl CelestialBody {
+    fn new(x: f64, y: f64, z: f64, vx: f64, vy: f64, vz: f64) -> CelestialBody {
+        CelestialBody {
+            position: Point::new(x, y, z),
+            velocity: Vector3::new(vx, vy, vz),
         }
     }
 
-    fn calculate_geostationary_orbit_parameters(orbital_period: f64, g: f64, mercury_mass: f64) -> (f64, f64) {
-        let radius = ((g * mercury_mass * orbital_period.powi(2)) / (4.0 * PI.powi(2))).powf(1.0 / 3.0);
-        let inclination = 0.0;  // Inclinaison proche de zéro pour une orbite géostationnaire
-
-        (radius, inclination)
+    fn update_position(&mut self, dt: f64) {
+        self.position.x += self.velocity.x * dt;
+        self.position.y += self.velocity.y * dt;
+        self.position.z += self.velocity.z * dt;
     }
-
 }
 
-
-// Fonction pour réarranger les points en utilisant l'algorithme de recuit simulé.
-fn rearrange_panels_hyperion(solar_swarm: &mut SolarSwarm){
-
+// Fonction pour réarranger les panneaux en utilisant l'algorithme de recuit simulé.
+fn rearrange_panels_hyperion(solar_swarm: &mut SolarSwarm, celestial_body: &mut CelestialBody) {
     let mut rng = rand::thread_rng();
+
     let cloned_solar = solar_swarm.solar_panels.clone();
 
-
-    for panel in solar_swarm.solar_panels.iter_mut(){
-
-        let close_neighbors = cloned_solar.clone()
-            .iter()
-            .filter(|other_panel| calculate_distance(&panel.position, &other_panel.position) < 20.)
+    for panel in solar_swarm.solar_panels.iter_mut() {
+        // Calculer la connectivité en fonction des panneaux proches
+        let close_neighbors = cloned_solar.iter()
+            .filter(|other_panel| panel.position.distance(&other_panel.position) < 20.0)
             .count() as i32;
 
         panel.connectivity = close_neighbors;
 
-        let mut current_energy = 0.0;
-        for i in 0..cloned_solar.clone().len() {
-            for j in i + 1..cloned_solar.len() {
-                current_energy += 1.0 / cloned_solar[i].position.distance(&cloned_solar[j].position);
-            }
-        }
+        // Copier les panneaux solaires pour le calcul de l'énergie
+        let current_energy = calculate_energy(&cloned_solar);
 
-        //impossible à trigger on a energie infinie avec l'étoile
-        if panel.energy_level < 5.{
-            println!("energy level too low")
+        // Vérification de l'énergie minimale
+        if panel.energy_level < 5. {
+            println!("Energy level too low");
         }
 
         for _ in 0..100 {
+            // Générer un déplacement aléatoire
             let dx = rng.gen_range(-panel.thruster..panel.thruster);
             let dy = rng.gen_range(-panel.thruster..panel.thruster);
             let dz = rng.gen_range(-panel.thruster..panel.thruster);
 
-
-
+            // Appliquer le déplacement
             panel.position.x += dx;
             panel.position.y += dy;
             panel.position.z += dz;
 
-            let new_distance_to_star = calculate_distance(&Point::new(0.0, 0.0, 0.0), &panel.position);
+            // Vérification de la distance de sécurité par rapport à la planète
+            let new_distance_to_planet = panel.position.distance(&celestial_body.position);
+            if new_distance_to_planet < 6.0 {
+                // Reculer le panneau solaire en cas de collision avec la planète
+                panel.position.x -= dx;
+                panel.position.y -= dy;
+                panel.position.z -= dz;
 
-            // Vérification de la distance de sécurité
-            if new_distance_to_star < 6. {
-                // Reculer le panneau solaire (ajuster selon votre logique)
-                panel.position.x += dx;
-                panel.position.y += dy;
-                panel.position.z += dz;
-
-                println!("collision star warning")
+                println!("Collision with planet warning");
             }
 
-
-            let mut new_energy = 0.0;
-            for i in 0..cloned_solar.clone().len() {
-                for j in i + 1..cloned_solar.len() {
-                    new_energy += 1.0 / cloned_solar[i].position.distance(&cloned_solar[j].position);
-                }
-            }
+            // Copier les panneaux solaires pour le calcul de l'énergie après le déplacement
+            let new_energy = calculate_energy(&cloned_solar);
 
             // Vérification de la distance entre les panneaux ( à modifier pas optimal )
             let min_distance = 2.0;
-            for other_panel in &cloned_solar{
+            for other_panel in &cloned_solar {
                 while other_panel.position.distance(&panel.position) < min_distance {
-                    println!("collision risk DETECTED");
+                    println!("Collision risk detected");
                     // Éloigner les panneaux si la distance est inférieure à 2
                     panel.position.x += dx * 2.0;
                     panel.position.y += dy * 2.0;
@@ -161,79 +144,70 @@ fn rearrange_panels_hyperion(solar_swarm: &mut SolarSwarm){
                 }
             }
 
-
             let delta_energy = new_energy - current_energy;
 
+            // Accepter ou rejeter le déplacement en fonction de l'énergie et de la température
             if delta_energy > 0.0 && rng.gen_range(0.0..1.0) > (-delta_energy / panel.temperature).exp() {
                 panel.position.x -= dx;
                 panel.position.y -= dy;
                 panel.position.z -= dz;
             }
 
+            // Gérer la surchauffe automatiquement
             if panel.temperature > 1500. {
-                println!("panel temperature too hight");
-                println!("begin automatique correction");
+                println!("Panel temperature too high");
+                println!("Begin automatic correction");
 
                 let ancient_coordinate = panel.clone();
 
-                while panel.temperature > 1000.{  // modifier pour prendre en compte la force des thrusters
-                    panel.position.x += 10.;
-                    panel.position.y += 10.;
-                    panel.position.z += 10.;
+                while panel.temperature > 1000. {
+                    // Déplacer le panneau loin pour dissiper la chaleur
+                    panel.position.x += 10.0;
+                    panel.position.y += 10.0;
+                    panel.position.z += 10.0;
 
-                    //ajouter un timer ici
-                    //plus écoute de la sonde thermique
-                    panel.temperature -= 15.;
-
+                    // Ajouter des mesures pour surveiller la sonde thermique et ajuster la température
+                    panel.temperature -= 15.0;
                 }
 
-                // rester plus loins que la position d'origine pour éviter une autre surchauffe
-                panel.position.x = ancient_coordinate.position.x - 5.;
-                panel.position.y = ancient_coordinate.position.y - 5.;
-                panel.position.z = ancient_coordinate.position.z - 5.;
+                // Revenir à la position d'origine, mais rester plus loin pour éviter une autre surchauffe
+                panel.position.x = ancient_coordinate.position.x - 5.0;
+                panel.position.y = ancient_coordinate.position.y - 5.0;
+                panel.position.z = ancient_coordinate.position.z - 5.0;
 
-                println!("alerte end");
-
+                println!("Alert ended");
             }
-
         }
     }
 
-
+    // Mettre à jour la position de la planète
+    celestial_body.update_position(1.0); // Changer la valeur de dt en fonction de la simulation
 }
 
-fn calculate_distance(star_position: &Point, panel_position: &Point) -> f64 {
-    ((star_position.x - panel_position.x).powi(2) + (star_position.y - panel_position.y).powi(2) + (star_position.z - panel_position.z).powi(2)).sqrt()
+// Fonction pour calculer l'énergie totale des panneaux solaires
+fn calculate_energy(solar_panels: &[SolarPanel]) -> f64 {
+    let mut energy = 0.0;
+    for i in 0..solar_panels.len() {
+        for j in i + 1..solar_panels.len() {
+            energy += 1.0 / solar_panels[i].position.distance(&solar_panels[j].position);
+        }
+    }
+    energy
 }
-
-fn calculate_solar_energy(reference_intensity: f64, reference_distance: f64, target_distance: f64, surface_area: f64) -> f64 {
-    // Calculer l'intensité à la nouvelle distance
-    let target_intensity = reference_intensity / (target_distance.powf(2.0) / reference_distance.powf(2.0));
-
-    // Calculer l'énergie solaire reçue à la nouvelle distance
-    let solar_energy = target_intensity * surface_area;
-
-    solar_energy
-}
-
-
-
 
 fn main() {
-    const NUM_PANELS: usize = 10; // nombre de panneau souhaité
-    const INITIAL_TEMPERATURE: f64 = -270.424; // température du vide spatial
-    const DANGER_TEMPERATURE: f64 = 1668.; // température de fusion du titane
-    const STAR_DIAMETER: f64 = 4.; // taille de l'étoile autours duquel on gravite
+    const NUM_PANELS: usize = 10; // Nombre de panneaux solaires souhaité
+    const DANGER_TEMPERATURE: f64 = 1668.0; // Température de fusion du titane
+    const STAR_DIAMETER: f64 = 4.0; // Taille de l'étoile autour de laquelle on gravite
 
     let mut solar_panels = Vec::new();
     let mut rng = rand::thread_rng();
-    let orbit_distance = 2.;
-
+    let orbit_distance = 2.0;
 
     for _ in 0..NUM_PANELS {
-        let theta = rng.gen_range(0.0..2.0 * PI); //génère un nombre aléatoire dans la plage spécifiée, ici de 0 à 2π dans le plan xy
-        let phi = rng.gen_range(0.0..PI); //génère un nombre aléatoire dans la plage spécifiée, ici de 0 à π dans le plan ZX
-        let radius = orbit_distance + STAR_DIAMETER;  // Distance de d'implantation des satellites
+        let theta = rng.gen_range(0.0..2.0 * PI);
+        let phi = rng.gen_range(0.0..PI);
+        let radius = orbit_distance + STAR_DIAMETER;
 
         let x = radius * theta.sin() * phi.cos();
         let y = radius * theta.sin() * phi.sin();
@@ -244,55 +218,41 @@ fn main() {
         let energy_level = rng.gen_range(70.0..100.0);
         let connectivity = rng.gen_range(80..100);
 
-        let solar_panel = SolarPanel::new(position, temperature, energy_level, connectivity, 1.);
+        let solar_panel = SolarPanel::new(position, temperature, energy_level, connectivity, 1.0);
 
         solar_panels.push(solar_panel);
     }
 
+    // Initialiser le système solaire avec une planète
     let mut solar_swarm = SolarSwarm::new("Hyperion", solar_panels);
 
-    // simulateur de déplacement aléatoire
+    let mercury_distance = 57_910_000_000.0; // en mètres
+    let mercury_orbital_velocity = 47_870.0; // en m/s
+    let orbit_radius = mercury_distance + rng.gen_range(-1.0..1.0);
+    const COMMON_ORBITAL_PERIOD: f64 = 58.6 * 24.0 * 3600.0;
+
+    let mut mercury = CelestialBody::new(mercury_distance, 0.0, 0.0, 0.0, mercury_orbital_velocity, 0.0);
+
+
+    // Simuler les déplacements des panneaux solaires et de la planète
     for _ in 0..10 {
-        rearrange_panels_hyperion(&mut solar_swarm);
-    }
-
-    for panel in solar_swarm.solar_panels{
-        println!("{:?}", panel)
+        rearrange_panels_hyperion(&mut solar_swarm, &mut mercury);
     }
 
 
-    /////////calcul tier pour un positionnement supposé en orbite de mercure
 
-    const REFERENCE_INTENSITY: f64 = 1361.0;  // Intensité solaire moyenne à la distance de référence en W/m^2 (exemple)
-    const REFERENCE_DISTANCE: f64 = 5.0e10;   // Distance de référence en mètres (exemple)
-    const TARGET_DISTANCE: f64 = 5.0e10;      // Nouvelle distance (distance orbitale du satellite géostationnaire) en mètres (exemple)
-    const SURFACE_AREA: f64 = 10.0;           // Surface du panneau solaire en m^2 (exemple)
-
-    let energy_received = calculate_solar_energy(REFERENCE_INTENSITY, REFERENCE_DISTANCE, TARGET_DISTANCE, SURFACE_AREA);
-
-    println!("Énergie solaire reçue à {} unités de distance : {}", TARGET_DISTANCE, energy_received);
+    // Définir la période orbitale commune (en secondes)
 
 
-    let mercury = Planete::new(Point::new(10., 10., 10.), 6.674e-11, 3011e23, 58.6 * 24.0 * 3600.0);
+    let required_orbital_velocity = 2.0 * PI * orbit_radius / COMMON_ORBITAL_PERIOD;
 
-    //  ORBITAL_PERIOD: f64 = 58.6 * 24.0 * 3600.0;
-    // Période orbitale en secondes (58.6 jours terrestres convertis)
-
-    let (radius, inclination) = Planete::calculate_geostationary_orbit_parameters(mercury.orbital_period, mercury.g_force, mercury.mass);
-
-    println!("Rayon Orbital : {} m", radius);
-    println!("Inclinaison Orbitale : {} degrés", inclination);
-
-
-    // calcul position hexagonal
-
-
-
-    let abeille = positionnement::create_hexagonal_pattern(NUM_PANELS);
-
-    for panel in abeille{
-        println!("{:?}", panel)
+    // Ajuster la vitesse initiale des panneaux solaires
+    for panel in &mut solar_swarm.solar_panels {
+        panel.thruster = required_orbital_velocity;
     }
 
-
+    // Afficher les panneaux solaires après simulation
+    for panel in &solar_swarm.solar_panels {
+        println!("{:?}", panel);
+    }
 }
